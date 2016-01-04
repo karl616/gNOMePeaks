@@ -2,29 +2,64 @@
 
 name="gNOMeHMM.sh"
 
+# Local configuration
 AWK=mawk
+Rscript=Rscript
 
-FLANKSIZE=4000
-covCutoff=5
-maxGpCDist=150
-mergeGpC="T"
-joinPadding=2
-clusterForFDR="T"
-randMethod="standard"
-minLength=0
-getBackground="nomePeaksFilteredRegionEff"
-downSampleTo=""
-downSiteTo=25000
-nrOfStates=2
-RCORES=3
-RBATCH=100000
-PARALLELIZEPREFIX="eval" #local execution
-PARALLELIZEPREFIX="qsub -sync y -cwd -j y -o tmp.log -V -N gNOMePeaks -l mem_free=16G -t 1-"
-#Path for temporary files
+## Path for temporary files
 export tmpFolder=$TMPDIR
+
+## uncomment to activate SGE support
+#PARALLELIZEPREFIX="qsub -sync y -cwd -j y -o tmp.log -V -N gNOMePeaks -l mem_free=16G -t 1-"
+
+## Set SCRIPTFOLDER to the folder containing the scripts if you want to
+##  add this software to your path. Default behaviour is to identify the
+##  installation folder from the path of the executable
+#SCRIPTFOLDER=
+
+# Run time parameters
+
+## default number of background base pairs up- and down-stream
+FLANKSIZE=4000
+
+## default minimum coverage
+covCutoff=5
+
+## default maximum distance between GpCs
+maxGpCDist=150
+
+## default is to merge the two strands. (F for not doing this)
+mergeGpC="T"
+
+## default is to cluster based on coverage before calculating FDR
+clusterForFDR="T"
+
+## how to randomize. default is to only shuffle methylation values. 
+randMethod="standard"
+
+## defining the region to be used for background
+getBackground="nomePeaksFilteredRegionEff"
+
+#TODO: remove
+## legacy parameter for down-sampling
+downSampleTo=""
+
+## default maximum coverage. Sites with larger coverage are reduced to this value
+downSiteTo=25000
+
+## number of states in the hidden Markov model
+nrOfStates=2
+
+## number of cores to use in in R
+RCORES=3
+
+## number of lines to read into memory when calculating Fisher's exact test
+RBATCH=100000
+
+## if set to 1, the temporary files are kept. default is to remove them.
 keepTmp=0
 
-Rscript=Rscript
+
 
 printHelp() {
   >&2 echo -e "Usage: $name <options>"
@@ -37,7 +72,6 @@ printHelp() {
   >&2 echo -e "  -c INT\tAn integer used to filter out low coverage sites. This is done after merging."
   >&2 echo -e "        \t (default: $covCutoff)"
   >&2 echo -e "  -r\t\tIf set, coverage and methylation levels are shuffled together. (default: not set)"
-  >&2 echo -e "  -l INT\tMinimum length of a putative peak. (default: $minLength bp)"
   >&2 echo -e "  -f INT\tSize up- and downstream of each peak to use as background (default: $FLANKSIZE bp)"
   >&2 echo -e "  -u\t\tFix the size used for background calculation. By default, the peak"
   >&2 echo -e "    \t\t regions annotated by the HMM are excluded from the background."
@@ -51,19 +85,17 @@ printHelp() {
 }
 
 
-while getopts ":i:o:S:mc:l:L:f:t:D:d:G:N:n:sTurh" opt; do
+while getopts ":i:o:S:mc:L:f:t:D:G:N:n:sTurh" opt; do
   case $opt in
     h) printHelp; exit 0 ;;
     i) INPUTFILE="$OPTARG" ;;
     o) OUTPUT="$OPTARG" ;;
     S) SCRIPTFOLDER="${OPTARG%/}" ;;
-    m) mergeGpC="F"; joinPadding=1;;
+    m) mergeGpC="F" ;;
     c) covCutoff="$OPTARG" ;;
     r) randMethod="withCount" ;;
     f) FLANKSIZE="$OPTARG" ;;
     u) getBackground="nomePeaksFilteredRegion" ;;
-    l) minLength="$OPTARG" ;;
-    d) downSampleTo="$OPTARG" ;;
     D) downSiteTo="$OPTARG" ;;
     G) maxGpCDist="$OPTARG" ;;
     N) nrOfStates="$OPTARG" ;;
@@ -219,15 +251,15 @@ done > $TMPWD/job40.calculateP.txt
 if [[ "$PARALLELIZEPREFIX" == qsub* ]]; then
   $PARALLELIZEPREFIX$(cat $TMPWD/job40.calculateP.txt |wc -l) $SCRIPTFOLDER/subroutines/executeLine.sh -j $TMPWD/job40.calculateP.txt || (>&2 echo "ERROR `date` ($name): parallelized calculation of fisher test failed";exit 71)
 else
-  bash $TMPWD/job40.calculateP.txt || (>&2 echo "ERROR `date` ($name): calculation of fisher test failed";exit 71
+  bash $TMPWD/job40.calculateP.txt || (>&2 echo "ERROR `date` ($name): calculation of fisher test failed";exit 71)
 fi
 
 #merge real data
-sort -k1,1 -k2,2n -k3,3n -m $TMPWD/sep/1st_peak_*real.withP.bed > $PEAKSP || (>&2 echo "ERROR `date` ($name): merge data failed";exit 73
+sort -k1,1 -k2,2n -k3,3n -m $TMPWD/sep/1st_peak_*real.withP.bed > $PEAKSP || (>&2 echo "ERROR `date` ($name): merge data failed";exit 73)
 
 #merge background data 
 #sort here or later...
-cut -f 4,7 $TMPWD/sep/1st_peak_*perm.withP.bed |sort -k1,1g > $SHUFFLEDPDIST || (>&2 echo "ERROR `date` ($name): merge of background failed";exit 75
+cut -f 4,7 $TMPWD/sep/1st_peak_*perm.withP.bed |sort -k1,1g > $SHUFFLEDPDIST || (>&2 echo "ERROR `date` ($name): merge of background failed";exit 75)
 
 
 
@@ -257,7 +289,7 @@ fi
 #calculate grouped FDR
 for foreground in $fdrGroup/*.fg.raw; do
   background=${foreground%.fg.raw}.bg.raw
-  java -Xmx32G -jar $BISUTILS gNOMe_addFDR $foreground $background $(wc -l $background |cut -f 1 -d ' ') 2 > ${foreground%.raw}.fdr 2> /dev/null || (>&2 echo "ERROR `date` ($name): FDR calculation failed";exit 87
+  java -Xmx32G -jar $BISUTILS gNOMe_addFDR $foreground $background $(wc -l $background |cut -f 1 -d ' ') 2 > ${foreground%.raw}.fdr 2> /dev/null || (>&2 echo "ERROR `date` ($name): FDR calculation failed";exit 87)
 done
 
 sort -k1,1 -k2,2n -k3,3n  $fdrGroup/*.fg.fdr \
@@ -269,7 +301,7 @@ sort -k1,1 -k2,2n -k3,3n  $fdrGroup/*.fg.fdr \
 if [ $keepTmp == 0 ]; then
   rm -rf $TMPWD
 else
-  >&2 echo "LOGG `date` ($name): Temporary files kept in folder: $TMPWD" >&2
+  >&2 echo "LOGG `date` ($name): Temporary files kept in folder: $TMPWD" 
 fi
 
 >&2 echo "LOGG `date` ($name): DONE"
