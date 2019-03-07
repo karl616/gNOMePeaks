@@ -3,8 +3,10 @@
 name="gNOMeHMM.sh"
 
 # Local configuration
-AWK=mawk
+#AWK=mawk
+AWK=awk
 Rscript=Rscript
+java=java
 
 ## Path for temporary files
 export tmpFolder=$TMPDIR
@@ -17,7 +19,7 @@ export tmpFolder=$TMPDIR
 ##  installation folder from the path of the executable
 #SCRIPTFOLDER=
 
-# Run time parameters
+# Run time parameters (DON'T CHANGE)
 
 ## default number of background base pairs up- and down-stream
 FLANKSIZE=4000
@@ -245,7 +247,7 @@ done
 #prepare parallelization of the p-value calculation
 for peak in $TMPWD/sep/1st_peak_*{perm,real}.bed; do
   site=${peak/1st_peak_/1st_site_}
-  echo "java -Xmx4G -jar $BISUTILS $getBackground $site $peak $peak $FLANKSIZE | $Rscript $SCRIPTFOLDER/subroutines/NOME_fisherExactTest.R $RBATCH $RCORES 1 $downSampleTo > ${peak/.bed/.withP.bed}" 
+  echo "$java -Xmx4G -jar $BISUTILS $getBackground $site $peak $peak $FLANKSIZE | $Rscript $SCRIPTFOLDER/subroutines/NOME_fisherExactTest.R $RBATCH $RCORES 1 $downSampleTo > ${peak/.bed/.withP.bed}" 
 done > $TMPWD/job40.calculateP.txt
 
 if [[ "$PARALLELIZEPREFIX" == qsub* ]]; then
@@ -289,7 +291,7 @@ fi
 #calculate grouped FDR
 for foreground in $fdrGroup/*.fg.raw; do
   background=${foreground%.fg.raw}.bg.raw
-  java -Xmx32G -jar $BISUTILS gNOMe_addFDR $foreground $background $(wc -l $background |cut -f 1 -d ' ') 2 > ${foreground%.raw}.fdr 2> /dev/null || (>&2 echo "ERROR `date` ($name): FDR calculation failed";exit 87)
+  $java -Xmx32G -jar $BISUTILS gNOMe_addFDR $foreground $background $(wc -l $background |cut -f 1 -d ' ') 2 > ${foreground%.raw}.fdr 2> /dev/null || (>&2 echo "ERROR `date` ($name): FDR calculation failed";exit 87)
 done
 
 sort -k1,1 -k2,2n -k3,3n  $fdrGroup/*.fg.fdr \
