@@ -33,6 +33,16 @@ gNOMePeaks utilizes the R package HiddenMarkov for hidden Markov models. This pa
 R CMD INSTALL ...PATH.../gNOMePeaks/thirdParty/HiddenMarkov.mod
 ```
 
+## Run
+
+To execute, simply run:
+
+```
+bash gNOMeHMM.sh -h
+```
+
+This will print the available options with their description.
+
 ## Output format
 
 The gNOMePeaks output table contains the following fields:
