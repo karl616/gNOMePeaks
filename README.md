@@ -61,6 +61,16 @@ track name=sampleFile type=bedDetail description="GCH methylation level" visibil
 1       10552   10553   12.50   8       +
 ```
 
+## Run
+
+To execute, simply run:
+
+```
+bash gNOMeHMM.sh -h
+```
+
+This will print the available options with their description.
+
 ## Output format
 
 The gNOMePeaks output table contains the following fields:
