@@ -4,7 +4,7 @@ name="gNOMeHMM.sh"
 
 # Local configuration
 #AWK=mawk
-AWK=awk
+export AWK=gawk
 Rscript=Rscript
 java=java
 
@@ -186,7 +186,7 @@ postDecodeCol=7
 # pre-processing = putative merge of GcPs and coverage filter
 # prepare pre-processing for parallelization
 for raw in $TMPWD/sep/raw*bed; do
-  echo "bash $SCRIPTFOLDER/subroutines/preProcessing.sh $raw $mergeGpC $covCutoff $TMPWD `dirname $raw`/`basename $raw |sed s/raw_//`"
+  echo "bash $SCRIPTFOLDER/subroutines/preProcessing.sh $raw $mergeGpC $covCutoff $TMPWD `dirname $raw`/`basename $raw |sed s/raw_//` $AWK"
 done > $TMPWD/job20.preProcessing.txt
 
 

@@ -11,7 +11,7 @@ Peak calling in whole-ganome NOMe data
   * snow
   * parallel
 * java
-* awk or mawk
+* gawk or mawk (macOS comes with nawk ==> use brew to install gawk)
 
 ### create jar-file from source
 
@@ -31,6 +31,34 @@ gNOMePeaks utilizes the R package HiddenMarkov for hidden Markov models. This pa
 
 ```
 R CMD INSTALL ...PATH.../gNOMePeaks/thirdParty/HiddenMarkov.mod
+```
+
+## Input format
+
+gNOMePeaks works with methylation calls in Bis-SNP format. The first line of the this format contains track information and will be ignored. In essence it is enough to provide a tab-separated file with six columns, and an arbitrary or empty first line:
+
+- chr, chromosome
+- start, start of Cytosine in GC context
+- end, end of Cytosine in GC context (start+1)
+- methylation ratio, double value scaled from 0 to 100
+- coverage, number of reads covering the position
+- strand, +/-
+
+Example:
+
+```
+track name=sampleFile type=bedDetail description="GCH methylation level" visibility=3
+1       10481   10482   0.00    1       -
+1       10482   10483   0.00    4       +
+1       10485   10486   0.00    1       -
+1       10486   10487   0.00    4       +
+1       10490   10491   0.00    6       +
+1       10494   10495   0.00    5       +
+1       10520   10521   0.00    5       -
+1       10521   10522   12.50   8       +
+1       10526   10527   0.00    8       +
+1       10551   10552   0.00    4       -
+1       10552   10553   12.50   8       +
 ```
 
 ## Output format
